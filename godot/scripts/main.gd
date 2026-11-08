@@ -63,15 +63,22 @@ func _build_world() -> void:
 	add_child(ground)
 
 	for i in range(12):
-		var block := MeshInstance3D.new()
+		var obstacle := StaticBody3D.new()
 		var mesh := BoxMesh.new()
 		mesh.size = Vector3(2.5, randf_range(1.5, 5.0), 2.5)
+		var block := MeshInstance3D.new()
 		block.mesh = mesh
-		block.position = Vector3(randf_range(-28, 28), mesh.size.y / 2.0, randf_range(-28, 28))
 		var mat := StandardMaterial3D.new()
 		mat.albedo_color = Color(0.78, 0.76, 0.68)
 		block.material_override = mat
-		add_child(block)
+		obstacle.add_child(block)
+		var collision := CollisionShape3D.new()
+		var shape := BoxShape3D.new()
+		shape.size = mesh.size
+		collision.shape = shape
+		obstacle.add_child(collision)
+		obstacle.position = Vector3(randf_range(-28, 28), mesh.size.y / 2.0, randf_range(-28, 28))
+		add_child(obstacle)
 
 func _build_player() -> void:
 	player = PLAYER_SCRIPT.new()

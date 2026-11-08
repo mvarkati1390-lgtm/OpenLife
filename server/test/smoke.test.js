@@ -51,6 +51,13 @@ test("registration, login and shared world position API", async () => {
     const playerSession = await register.json();
     assert.ok(playerSession.token);
 
+    const forbiddenRoleChange = await fetch(base + "/api/owner/role", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: "Bearer " + playerSession.token },
+      body: JSON.stringify({ userId: playerSession.user.id, role: "admin" })
+    });
+    assert.equal(forbiddenRoleChange.status, 403);
+
     const position = await fetch(base + "/api/world/position", {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: "Bearer " + playerSession.token },
@@ -82,6 +89,20 @@ test("registration, login and shared world position API", async () => {
       body: JSON.stringify({ x: "bad", y: 0, z: 0 })
     });
     assert.equal(invalidPosition.status, 400);
+
+    const ban = await fetch(base + "/api/admin/player/" + playerSession.user.id + "/ban", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: "Bearer " + ownerSession.token },
+      body: JSON.stringify({ reason: "test" })
+    });
+    assert.equal(ban.status, 200);
+
+    const bannedRequest = await fetch(base + "/api/world/position", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: "Bearer " + playerSession.token },
+      body: JSON.stringify({ x: 0, y: 0, z: 0 })
+    });
+    assert.equal(bannedRequest.status, 401);
   } finally {
     child.kill("SIGTERM");
     await new Promise(resolve => {

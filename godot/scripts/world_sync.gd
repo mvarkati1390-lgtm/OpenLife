@@ -65,13 +65,34 @@ func _fetch_players() -> void:
 func _headers() -> PackedStringArray:
 	return PackedStringArray(["Content-Type: application/json", "Authorization: Bearer " + token])
 
-func _on_sender_request_completed(_result: int, _code: int, _headers: PackedStringArray, _body: PackedByteArray) -> void:
+func _on_sender_request_completed(result: int, code: int, _headers: PackedStringArray, body: PackedByteArray) -> void:
 	sending = false
+	if result != HTTPRequest.RESULT_SUCCESS:
+		sync_error.emit("ارتباط با سرور قطع شد؛ موقعیت ارسال نشد.")
+	elif code == 401:
+		stop()
+		sync_error.emit("نشست ورود منقضی شده؛ دوباره وارد شو.")
+	elif code < 200 or code >= 300:
+		var message := "سرور موقعیت را نپذیرفت: " + str(code)
+		var parsed_error = JSON.parse_string(body.get_string_from_utf8())
+		if parsed_error is Dictionary and parsed_error.has("error"):
+			message = str(parsed_error.error)
+		sync_error.emit(message)
 
-func _on_receiver_request_completed(_result: int, code: int, _headers: PackedStringArray, body: PackedByteArray) -> void:
+func _on_receiver_request_completed(result: int, code: int, _headers: PackedStringArray, body: PackedByteArray) -> void:
 	receiving = false
+	if result != HTTPRequest.RESULT_SUCCESS:
+		sync_error.emit("دریافت فهرست بازیکنان ناموفق بود؛ اتصال را بررسی کن.")
+		return
+	if code == 401:
+		stop()
+		sync_error.emit("نشست ورود منقضی شده؛ دوباره وارد شو.")
+		return
 	if code < 200 or code >= 300:
+		sync_error.emit("سرور بازیکنان را ارسال نکرد: " + str(code))
 		return
 	var parsed = JSON.parse_string(body.get_string_from_utf8())
 	if parsed is Dictionary and parsed.get("players") is Array:
 		players_updated.emit(parsed.players)
+	else:
+		sync_error.emit("پاسخ فهرست بازیکنان نامعتبر است.")

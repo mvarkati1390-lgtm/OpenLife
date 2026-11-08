@@ -3,6 +3,7 @@ on:
   push:
     paths:
       - "server/**"
+      - "admin-panel/**"
       - ".github/workflows/server-checks.yml"
   pull_request:
     paths:

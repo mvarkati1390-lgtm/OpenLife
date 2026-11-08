@@ -50,6 +50,13 @@ CREATE TABLE IF NOT EXISTS profiles(
  level INTEGER NOT NULL DEFAULT 1,
  coins INTEGER NOT NULL DEFAULT 100
 );
+CREATE TABLE IF NOT EXISTS world_positions(
+ user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+ x REAL NOT NULL DEFAULT 0,
+ y REAL NOT NULL DEFAULT 0,
+ z REAL NOT NULL DEFAULT 0,
+ updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
 `);
 const count = db.prepare("SELECT COUNT(*) n FROM users").get().n;
 if (!count && process.env.OWNER_USERNAME && process.env.OWNER_PASSWORD) {
@@ -100,6 +107,21 @@ app.post("/api/login",(req,res)=>{
  const user=db.prepare("SELECT * FROM users WHERE username=?").get(username);
  if(!user || user.banned || !bcrypt.compareSync(String(req.body.password||""),user.password_hash)) return res.status(401).json({error:"نام کاربری یا رمز نادرست است"});
  res.json({token:tokenFor(user),user:{id:user.id,username:user.username,role:user.role}});
+});
+const positionWrites = new Map();
+app.get("/api/world/players",auth,(req,res)=>{
+ const players=db.prepare("SELECT users.id,users.username,world_positions.x,world_positions.y,world_positions.z FROM users JOIN world_positions ON world_positions.user_id=users.id WHERE users.banned=0 AND users.id<>? LIMIT 100").all(req.user.id);
+ res.json({players});
+});
+app.post("/api/world/position",auth,(req,res)=>{
+ const now=Date.now(), previous=positionWrites.get(req.user.id)||0;
+ if(now-previous<150) return res.status(429).json({error:"ارسال حرکت خیلی سریع است"});
+ const {x,y,z}=req.body||{};
+ if(![x,y,z].every(v=>typeof v==="number" && Number.isFinite(v) && Math.abs(v)<=100000))
+  return res.status(400).json({error:"مختصات نامعتبر است"});
+ positionWrites.set(req.user.id,now);
+ db.prepare("INSERT INTO world_positions(user_id,x,y,z,updated_at) VALUES(?,?,?,?,CURRENT_TIMESTAMP) ON CONFLICT(user_id) DO UPDATE SET x=excluded.x,y=excluded.y,z=excluded.z,updated_at=CURRENT_TIMESTAMP").run(req.user.id,x,y,z);
+ res.json({ok:true});
 });
 app.get("/api/me",auth,(req,res)=>{
  const profile=db.prepare("SELECT display_name,level,coins FROM profiles WHERE user_id=?").get(req.user.id);

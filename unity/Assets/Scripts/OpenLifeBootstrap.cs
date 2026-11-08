@@ -50,6 +50,7 @@ public class OpenLifeBootstrap : MonoBehaviour
 
         player.AddComponent<OpenLifeCharacterVisual>();
         var mover = player.AddComponent<ThirdPersonPlayer>();
+        player.AddComponent<OpenLifeWorldSync>();
         mover.cameraTransform = camObj.transform;
     }
 

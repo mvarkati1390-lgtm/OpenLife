@@ -87,7 +87,8 @@ test("registration, login and shared world position API", async () => {
     await new Promise(resolve => {
       if (child.exitCode !== null) return resolve();
       const timer = setTimeout(resolve, 3000);
-      child.once("exit", () => { clearTimeout(timer); resolve(); });\n    });
+      child.once("exit", () => { clearTimeout(timer); resolve(); });
+    });
     fs.rmSync(dir, { recursive: true, force: true });
   }
 });

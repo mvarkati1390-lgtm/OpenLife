@@ -1,46 +1,41 @@
-# سرور OpenLife
+# OpenLife Server
 
-سرور Node.js/Express با SQLite، JWT، Socket.IO و محدودسازی درخواست‌ها.
+سرور Node.js/Express با PostgreSQL (Supabase)، JWT، Socket.IO و محدودسازی درخواست‌ها.
 
-## امکانات پیاده‌سازی‌شده
+## امکانات
 - ثبت‌نام و ورود با هش رمز عبور
 - احراز هویت JWT و بررسی مسدودبودن حساب
-- پروفایل پایه
-- ذخیره و دریافت موقعیت بازیکنان فعال از API
+- پروفایل پایه و ذخیره موقعیت بازیکنان
 - حضور آنلاین از طریق Socket.IO و فعالیت HTTP
 - نقش‌های player، moderator، admin، manager و owner
-- پنل وب فارسی در مسیر `/admin/` برای آمار، جست‌وجو، اخطار، مسدودسازی و رفع مسدودی
-- تغییر نقش کاربران از پنل، فقط با حساب مالک
-- تعیین نقش فقط توسط owner
-- ثبت رویدادهای مدیریتی و دریافت گزارش‌ها
-- محدودسازی درخواست‌ها و اعتبارسنجی ورودی حرکت
+- پنل وب فارسی در مسیر `/admin/`
+- اخطار، مسدودسازی، رفع مسدودی و ثبت رویدادهای مدیریتی
+- گزارش بازیکنان و مدیریت وضعیت گزارش‌ها
 
 ## اجرای محلی
-نیازمند Node.js 20 یا جدیدتر:
-
+نیازمند Node.js 20 یا جدیدتر و یک PostgreSQL در دسترس:
 1. در پوشه `server` دستور `npm install` را اجرا کنید.
-2. متغیرهای محیطی را مطابق `.env.example` تنظیم کنید.
-3. `JWT_SECRET` را به یک مقدار تصادفی و قوی با حداقل ۳۲ کاراکتر تغییر دهید.
-4. `OWNER_USERNAME` و `OWNER_PASSWORD` را برای ساخت مالک اولیه تنظیم کنید.
-5. دستور `npm start` را اجرا کنید.
+2. متغیرهای `.env.example` را تنظیم کنید.
+3. `DATABASE_URL` را روی connection string دیتابیس PostgreSQL بگذارید.
+4. `JWT_SECRET` را به مقدار تصادفی قوی با حداقل ۳۲ کاراکتر تغییر دهید.
+5. `OWNER_USERNAME` و `OWNER_PASSWORD` را برای مالک اولیه تنظیم کنید.
+6. دستور `npm start` را اجرا کنید.
 
-هرگز فایل واقعی `.env` یا رمزها را در GitHub عمومی ثبت نکنید.
+ساخت جدول‌ها هنگام شروع سرور به‌صورت خودکار انجام می‌شود. هیچ رمز یا کلید واقعی را در GitHub ثبت نکنید.
+
+## استقرار رایگان آزمایشی
+فایل `render.yaml` سرویس رایگان Render را تعریف می‌کند. در Supabase یک پروژه PostgreSQL بسازید و URI اتصال را از بخش Database settings بردارید. در Render، متغیرهای زیر را تنظیم کنید:
+- `DATABASE_URL`: آدرس اتصال PostgreSQL از Supabase (ترجیحاً Session pooler برای میزبان‌هایی که IPv6 ندارند)
+- `OWNER_PASSWORD`: یک رمز قوی و منحصربه‌فرد برای مالک اولیه
+
+Render مقدار `JWT_SECRET` را خودکار می‌سازد. پس از deploy مسیر `/health` را بررسی کنید.
+
+**محدودیت پلن رایگان:** سرویس Render ممکن است پس از بی‌فعالیتی بخوابد و دیتابیس رایگان Supabase نیز ممکن است پس از دوره بی‌فعالیتی متوقف شود. این طرح برای نمونه‌سازی و آزمایش است، نه تضمین سرور دائمی یا بدون قطعی.
 
 ## تست
-از ریشه مخزن:
-`npm install --prefix server`
-`npm test --prefix server`
+GitHub Actions یک PostgreSQL موقت اجرا می‌کند و تست API را با آن انجام می‌دهد.
 
-GitHub Actions تست یکپارچه API و دسترسی صفحه پنل مدیریت را هنگام تغییرات سرور اجرا می‌کند.
-
-## محدودیت‌ها
-- کلاینت Unity فعلاً از API HTTP دوره‌ای برای موقعیت بازیکنان استفاده می‌کند؛ هنوز به Socket.IO وصل نشده است.
-- وضعیت حرکت هنوز سیستم نهایی authoritative server، interpolation یا ضدتقلب نیست.
-- سرور روی اینترنت مستقر نشده و تست بار/امنیت مستقل انجام نشده است.
-- برای استقرار، راهنمای `RENDER_DEPLOY.md` را ببینید.
-
-
-### Safety and moderation
-- A player's active Socket.IO sessions are disconnected immediately when an owner or authorized moderator bans the account.
-- Player report submissions are limited to 5 per account per 10 minutes to reduce spam.
-- Report status can be changed to `resolved` by authorized moderation roles; the action is recorded in the audit log.
+## محدودیت‌های فعلی
+- کلاینت Godot فعلاً از API HTTP برای همگام‌سازی موقعیت استفاده می‌کند؛ هنوز به Socket.IO وصل نشده است.
+- سیستم حرکت authoritative، interpolation و ضدتقلب نهایی نیست.
+- تا زمان deploy و تست واقعی، اتصال از داخل ایران و عملکرد چندنفره تأیید نشده است.

@@ -171,9 +171,13 @@ func _on_players_updated(players: Array) -> void:
 			continue
 		var player_id := str(data.id)
 		seen[player_id] = true
+		var display_name := str(data.get("username", "بازیکن"))
 		if not remote_players.has(player_id):
-			remote_players[player_id] = _make_remote_player(str(data.get("username", "بازیکن")))
+			remote_players[player_id] = _make_remote_player(display_name)
 		var avatar: Node3D = remote_players[player_id]
+		var name_tag := avatar.get_node_or_null("NameTag") as Label3D
+		if name_tag != null and name_tag.text != display_name:
+			name_tag.text = display_name
 		var target := Vector3(float(data.get("x", 0.0)), float(data.get("y", 0.0)), float(data.get("z", 0.0)))
 		avatar.position = avatar.position.lerp(target, 0.45)
 	for player_id in remote_players.keys():
@@ -194,6 +198,7 @@ func _make_remote_player(display_name: String) -> Node3D:
 	body.position.y = 0.9
 	avatar.add_child(body)
 	var tag := Label3D.new()
+	tag.name = "NameTag"
 	tag.text = display_name
 	tag.position.y = 2.1
 	tag.billboard = BaseMaterial3D.BILLBOARD_ENABLED

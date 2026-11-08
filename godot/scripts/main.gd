@@ -12,6 +12,7 @@ var status_label: Label
 var server_input: LineEdit
 var username_input: LineEdit
 var password_input: LineEdit
+var touch_button_size := 80.0
 
 func _ready() -> void:
 	_build_world()
@@ -121,17 +122,22 @@ func _build_ui() -> void:
 	status_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	column.add_child(status_label)
 
-	_add_touch_button(layer, "▲", "move_forward", Vector2(90, 520))
-	_add_touch_button(layer, "▼", "move_back", Vector2(90, 630))
-	_add_touch_button(layer, "◀", "move_left", Vector2(20, 575))
-	_add_touch_button(layer, "▶", "move_right", Vector2(160, 575))
-	_add_touch_button(layer, "پرش", "ui_accept", Vector2(1080, 590))
+	var screen_size := get_viewport().get_visible_rect().size
+	touch_button_size = clampf(minf(screen_size.x, screen_size.y) * 0.13, 64.0, 90.0)
+	var pad_gap := touch_button_size * 0.16
+	var pad_left := 18.0
+	var pad_bottom := screen_size.y - touch_button_size - 18.0
+	_add_touch_button(layer, "▲", "move_forward", Vector2(pad_left + touch_button_size + pad_gap, pad_bottom - touch_button_size - pad_gap))
+	_add_touch_button(layer, "▼", "move_back", Vector2(pad_left + touch_button_size + pad_gap, pad_bottom))
+	_add_touch_button(layer, "◀", "move_left", Vector2(pad_left, pad_bottom - (touch_button_size + pad_gap) * 0.5))
+	_add_touch_button(layer, "▶", "move_right", Vector2(pad_left + (touch_button_size + pad_gap) * 2.0, pad_bottom - (touch_button_size + pad_gap) * 0.5))
+	_add_touch_button(layer, "پرش", "ui_accept", Vector2(screen_size.x - touch_button_size - 24.0, pad_bottom))
 
 func _add_touch_button(parent: CanvasLayer, caption: String, action: String, pos: Vector2) -> void:
 	var button := Button.new()
 	button.text = caption
 	button.position = pos
-	button.custom_minimum_size = Vector2(90, 90)
+	button.custom_minimum_size = Vector2(touch_button_size, touch_button_size)
 	button.add_theme_font_size_override("font_size", 24)
 	button.button_down.connect(func(): Input.action_press(action))
 	button.button_up.connect(func(): Input.action_release(action))

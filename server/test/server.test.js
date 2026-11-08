@@ -46,6 +46,10 @@ test("HTTP API registration, authentication, and movement validation", async () 
     }
     assert.equal(ready, true, "server did not start: " + logs);
 
+    const adminPage = await fetch(base + "/admin/");
+    assert.equal(adminPage.status, 200);
+    assert.match(await adminPage.text(), /مدیریت OpenLife/);
+
     const invalid = await fetch(base + "/api/register", {
       method: "POST",
       headers: { "Content-Type": "application/json" },

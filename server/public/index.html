@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#101827">
+<title>مدیریت OpenLife</title>
+<style>
+:root{color-scheme:dark;font-family:Tahoma,Arial,sans-serif;background:#0b1220;color:#e5edf8}
+*{box-sizing:border-box}body{margin:0;padding:20px}.wrap{max-width:1100px;margin:auto}
+header{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+h1{font-size:24px;margin:8px 0}h2{font-size:18px;margin:0 0 14px}
+.panel{background:#131f31;border:1px solid #26364d;border-radius:14px;padding:16px;margin:16px 0}
+input,select,button{font:inherit;border-radius:9px;padding:11px;border:1px solid #344861;background:#0d1727;color:#e5edf8}
+input{min-width:0;max-width:100%}button{background:#1769aa;border:0;cursor:pointer}button.secondary{background:#34445b}button.danger{background:#a53b45}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.row input{flex:1}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
+.stat{background:#0d1727;border-radius:10px;padding:14px}.stat b{display:block;font-size:24px;margin-top:6px}
+.muted{color:#9fb0c7;font-size:13px}.hidden{display:none!important}
+table{width:100%;border-collapse:collapse;margin-top:12px}th,td{text-align:right;padding:10px;border-bottom:1px solid #2a3b52;vertical-align:middle}
+td .row{gap:5px}td button{padding:7px 9px;font-size:12px}
+.notice{padding:10px;border-radius:9px;background:#26364d;margin:10px 0;white-space:pre-wrap}
+.scroll{overflow-x:auto}.actions{display:flex;gap:8px;flex-wrap:wrap}
+@media(max-width:600px){body{padding:12px}.panel{padding:12px}h1{font-size:20px}}
+</style>
+</head>
+<body><main class="wrap">
+<header><div><h1>مدیریت OpenLife</h1><div class="muted">ورود فقط برای مدیران مجاز</div></div><button id="logout" class="secondary hidden">خروج</button></header>
+<div id="notice" class="notice hidden" role="status"></div>
+<section id="login" class="panel">
+<h2>ورود مدیر</h2>
+<form id="loginForm" class="row"><input id="username" autocomplete="username" placeholder="نام کاربری" required><input id="password" type="password" autocomplete="current-password" placeholder="رمز عبور" required><button>ورود</button></form>
+</section>
+<div id="dashboard" class="hidden">
+<section class="panel"><h2>وضعیت سرور</h2><div id="stats" class="stats"></div><div class="actions" style="margin-top:12px"><button id="refresh">بروزرسانی</button><button id="loadAudit" class="secondary">گزارش فعالیت مدیران</button><button id="loadReports" class="secondary">گزارش‌های کاربران</button></div></section>
+<section class="panel"><h2>مدیریت بازیکنان</h2><form id="searchForm" class="row"><input id="query" placeholder="جست‌وجوی نام کاربری"><button>جست‌وجو</button></form><div class="scroll"><table><thead><tr><th>بازیکن</th><th>نقش</th><th>وضعیت</th><th>عملیات</th></tr></thead><tbody id="players"></tbody></table></div></section>
+<section id="rolesPanel" class="panel hidden"><h2>تغییر سطح دسترسی (فقط مالک)</h2><div class="muted">نقش مالک قابل واگذاری یا حذف از این بخش نیست.</div><div class="scroll"><table><thead><tr><th>بازیکن</th><th>نقش جدید</th><th>ثبت</th></tr></thead><tbody id="roles"></tbody></table></div></section>
+<section class="panel"><h2>گزارش‌ها</h2><div id="reports" class="muted">برای مشاهده، «گزارش‌های کاربران» را بزن.</div></section>
+<section class="panel"><h2>گزارش فعالیت</h2><div id="audit" class="muted">برای مشاهده، «گزارش فعالیت مدیران» را بزن.</div></section>
+</div>
+</main>
+<script>
+const $=id=>document.getElementById(id);
+let token=sessionStorage.getItem("openlife_admin_token")||"";
+let currentUser=null;
+function message(text){$("notice").textContent=text;$("notice").classList.remove("hidden")}
+function hideMessage(){$("notice").classList.add("hidden")}
+async function api(path,options={}){
+ const headers={"Content-Type":"application/json",...(options.headers||{})};
+ if(token)headers.Authorization="Bearer "+token;
+ const response=await fetch(path,{...options,headers});
+ const data=await response.json().catch(()=>({}));
+ if(!response.ok)throw new Error(data.error||("خطای سرور: "+response.status));
+ return data;
+}
+function showDashboard(user){
+ currentUser=user;$("login").classList.add("hidden");$("dashboard").classList.remove("hidden");$("logout").classList.remove("hidden");
+ $("rolesPanel").classList.toggle("hidden",user.role!=="owner");refresh();
+}
+async function refresh(){
+ try{const d=await api("/api/admin/overview");$("stats").replaceChildren();
+ [["کل حساب‌ها",d.total],["آنلاین",d.online],["مسدود",d.banned],["گزارش باز",d.openReports]].forEach(([label,value])=>{const box=document.createElement("div");box.className="stat";const small=document.createElement("span");small.textContent=label;const strong=document.createElement("b");strong.textContent=value;box.append(small,strong);$("stats").append(box)});}
+ catch(e){message(e.message)}
+}
+$("loginForm").addEventListener("submit",async e=>{e.preventDefault();hideMessage();try{const d=await api("/api/login",{method:"POST",body:JSON.stringify({username:$("username").value,password:$("password").value})});token=d.token;sessionStorage.setItem("openlife_admin_token",token);showDashboard(d.user)}catch(err){message(err.message)}});
+$("logout").addEventListener("click",()=>{token="";currentUser=null;sessionStorage.removeItem("openlife_admin_token");$("dashboard").classList.add("hidden");$("login").classList.remove("hidden");$("logout").classList.add("hidden")});
+$("refresh").addEventListener("click",refresh);
+$("searchForm").addEventListener("submit",async e=>{e.preventDefault();try{const d=await api("/api/admin/players?q="+encodeURIComponent($("query").value));renderPlayers(d.players)}catch(err){message(err.message)}});
+function renderPlayers(players){
+ $("players").replaceChildren();$("roles").replaceChildren();
+ for(const p of players){
+  const tr=document.createElement("tr");
+  const name=document.createElement("td");name.textContent=p.username+" (#"+p.id+")";
+  const role=document.createElement("td");role.textContent=p.role;
+  const status=document.createElement("td");status.textContent=p.banned?"مسدود":(p.online?"آنلاین":"آفلاین");
+  const ops=document.createElement("td");const group=document.createElement("div");group.className="row";
+  const warn=document.createElement("button");warn.textContent="اخطار";warn.className="secondary";warn.onclick=async()=>{const reason=prompt("دلیل اخطار را بنویس:");if(reason===null)return;try{await api("/api/admin/player/"+p.id+"/warn",{method:"POST",body:JSON.stringify({reason})});message("اخطار ثبت شد.")}catch(e){message(e.message)}};
+  const ban=document.createElement("button");ban.textContent=p.banned?"رفع مسدودی":"مسدود";ban.className=p.banned?"secondary":"danger";ban.onclick=async()=>{if(!confirm("این عملیات را تأیید می‌کنی؟"))return;try{await api("/api/admin/player/"+p.id+(p.banned?"/unban":"/ban"),{method:"POST",body:JSON.stringify({reason:"اقدام از پنل مدیریت"})});message("عملیات انجام شد.");$("searchForm").requestSubmit();refresh()}catch(e){message(e.message)}};
+  group.append(warn,ban);ops.append(group);tr.append(name,role,status,ops);$("players").append(tr);
+  if(currentUser?.role==="owner"&&p.role!=="owner"){
+   const rr=document.createElement("tr"),n=document.createElement("td");n.textContent=p.username;
+   const sel=document.createElement("select");["player","moderator","admin","manager"].forEach(v=>{const o=document.createElement("option");o.value=v;o.textContent=v;o.selected=v===p.role;sel.append(o)});
+   const cell=document.createElement("td");cell.append(sel);const saveCell=document.createElement("td");const save=document.createElement("button");save.textContent="ذخیره";save.onclick=async()=>{try{await api("/api/owner/role",{method:"POST",body:JSON.stringify({userId:p.id,role:sel.value})});message("نقش تغییر کرد.");$("searchForm").requestSubmit()}catch(e){message(e.message)}};saveCell.append(save);rr.append(n,cell,saveCell);$("roles").append(rr);
+  }
+ }
+}
+$("loadReports").addEventListener("click",async()=>{try{const d=await api("/api/admin/reports");$("reports").replaceChildren();for(const r of d.reports){const item=document.createElement("div");item.className="panel";const title=document.createElement("b");title.textContent="#"+r.id+" — "+r.target_username+" ("+r.status+")";const body=document.createElement("p");body.textContent=r.reason;item.append(title,body);if(r.status==="open"){const btn=document.createElement("button");btn.textContent="بستن گزارش";btn.onclick=async()=>{try{await api("/api/admin/report/"+r.id+"/resolve",{method:"POST"});message("گزارش بسته شد.");$("loadReports").click();refresh()}catch(e){message(e.message)}};item.append(btn)}$("reports").append(item)}}catch(e){message(e.message)}});
+$("loadAudit").addEventListener("click",async()=>{try{const d=await api("/api/admin/audit");$("audit").replaceChildren();for(const a of d.events){const p=document.createElement("p");p.textContent="#"+a.id+" | "+(a.actor||"سیستم")+" | "+a.action+" | "+(a.detail||"");$("audit").append(p)}}catch(e){message(e.message)}});
+if(token){api("/api/me").then(d=>showDashboard(d.user)).catch(()=>{$("login").classList.remove("hidden");token="";sessionStorage.removeItem("openlife_admin_token")})}
+</script>
+</body></html>

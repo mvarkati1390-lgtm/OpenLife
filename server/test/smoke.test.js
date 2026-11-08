@@ -82,6 +82,25 @@ test("registration, login and shared world position API", async () => {
     assert.equal(data.players[0].x, 12.5);
     assert.equal(data.players[0].z, -8);
 
+    const reportCreate = await fetch(base + "/api/reports", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: "Bearer " + playerSession.token },
+      body: JSON.stringify({ target: "other_player", reason: "رفتار نامناسب در بازی" })
+    });
+    assert.equal(reportCreate.status, 201);
+    const reportCreated = await reportCreate.json();
+    const reportList = await fetch(base + "/api/admin/reports", {
+      headers: { Authorization: "Bearer " + ownerSession.token }
+    });
+    assert.equal(reportList.status, 200);
+    const reportData = await reportList.json();
+    assert.equal(reportData.reports[0].status, "open");
+    const resolveResponse = await fetch(base + "/api/admin/report/" + reportCreated.id + "/resolve", {
+      method: "POST",
+      headers: { Authorization: "Bearer " + ownerSession.token }
+    });
+    assert.equal(resolveResponse.status, 200);
+
     await new Promise(resolve => setTimeout(resolve, 800));
     const invalidPosition = await fetch(base + "/api/world/position", {
       method: "POST",

@@ -144,7 +144,7 @@ app.get("/api/admin/overview",auth,allow("owner","manager","admin","moderator"),
 app.get("/api/admin/players",auth,allow("owner","manager","admin","moderator"),(req,res)=>{
  const q=String(req.query.q||"").slice(0,40);
  const players=db.prepare("SELECT id,username,role,banned,warnings,created_at FROM users WHERE username LIKE ? ORDER BY id DESC LIMIT 100").all("%"+q+"%");
- res.json({players:players.map(p=>({...p,online:online.has(p.id) || (httpPresence.has(p.id) && Date.now()-httpPresence.get(p.id)<20000)}))});
+ res.json({players:players.map(p=>({...p,online:[...online.values()].includes(p.id) || (httpPresence.has(p.id) && Date.now()-httpPresence.get(p.id)<20000)}))});
 });
 app.post("/api/admin/player/:id/warn",auth,allow("owner","manager","admin"),(req,res)=>{
  const id=Number(req.params.id);

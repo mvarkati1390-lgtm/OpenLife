@@ -160,7 +160,12 @@ app.post("/api/admin/player/:id/ban",auth,allow("owner","manager","admin"),(req,
  if(!target || target.role==="owner" || (req.user.role!=="owner" && ["manager","admin"].includes(target.role))) return res.status(403).json({error:"امکان مسدودسازی این حساب وجود ندارد"});
  db.prepare("UPDATE users SET banned=1 WHERE id=?").run(id);
  audit(req.user.id,"ban",id,req.body.reason||"");
- for(const [socketId,userId] of online) if(userId===id) io.to(socketId).emit("account:banned");
+ for(const [socketId,userId] of online) {
+  if(userId===id) {
+   const client=io.sockets.sockets.get(socketId);
+   if(client) { client.emit("account:banned"); client.disconnect(true); }
+  }
+ }
  res.json({ok:true});
 });
 app.post("/api/admin/player/:id/unban",auth,allow("owner","manager","admin"),(req,res)=>{
@@ -182,7 +187,10 @@ app.post("/api/owner/role",auth,allow("owner"),(req,res)=>{
 app.get("/api/admin/audit",auth,allow("owner","manager"),(req,res)=>{
  res.json({events:db.prepare("SELECT audit.*,users.username actor FROM audit LEFT JOIN users ON users.id=audit.actor_id ORDER BY audit.id DESC LIMIT 100").all()});
 });
-app.post("/api/reports",auth,(req,res)=>{
+app.post("/api/reports",auth,rateLimit({
+ windowMs:10*60*1000,limit:5,keyGenerator:req=>String(req.user.id),
+ standardHeaders:"draft-7",legacyHeaders:false
+}),(req,res)=>{
  const target=String(req.body.target||"").trim().slice(0,40);
  const reason=String(req.body.reason||"").trim().slice(0,500);
  if(!target || reason.length<5) return res.status(400).json({error:"اطلاعات گزارش کامل نیست"});

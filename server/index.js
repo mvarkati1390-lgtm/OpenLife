@@ -90,7 +90,7 @@ function audit(actor,action,target=null,detail=""){
  db.prepare("INSERT INTO audit(actor_id,action,target_id,detail) VALUES(?,?,?,?)").run(actor,action,target,String(detail).slice(0,500));
 }
 app.get("/health",(req,res)=>res.json({ok:true,service:"OpenLife",online:onlinePlayerCount()}));
-app.post("/api/register",(req,res)=>{
+app.post("/api/register",rateLimit({ windowMs: 60 * 60 * 1000, limit: 5, standardHeaders: "draft-7", legacyHeaders: false }), (req,res)=>{
  const username=String(req.body.username||"").trim();
  const password=String(req.body.password||"");
  if(!/^[a-zA-Z0-9_]{3,20}$/.test(username) || password.length<10) return res.status(400).json({error:"نام کاربری ۳ تا ۲۰ حرف انگلیسی و رمز حداقل ۱۰ کاراکتر باشد"});
@@ -204,8 +204,14 @@ io.on("connection",socket=>{
  online.set(socket.id,socket.user.id);
  socket.emit("presence:update",{online:online.size});
  socket.broadcast.emit("presence:update",{online:online.size});
+ let lastMoveAt=0;
  socket.on("player:move",data=>{
-  if(!data || !Number.isFinite(data.x)||!Number.isFinite(data.y)||!Number.isFinite(data.z)) return;
+  const now=Date.now();
+  if(now-lastMoveAt<100 || !data ||
+     ![data.x,data.y,data.z].every(v=>typeof v==="number" && Number.isFinite(v) && Math.abs(v)<=100000)) return;
+  lastMoveAt=now;
+  db.prepare("INSERT INTO world_positions(user_id,x,y,z,updated_at) VALUES(?,?,?,?,CURRENT_TIMESTAMP) ON CONFLICT(user_id) DO UPDATE SET x=excluded.x,y=excluded.y,z=excluded.z,updated_at=CURRENT_TIMESTAMP").run(socket.user.id,data.x,data.y,data.z);
+  httpPresence.set(socket.user.id,now);
   socket.to("world").emit("player:moved",{id:socket.user.id,x:data.x,y:data.y,z:data.z});
  });
  socket.join("world");

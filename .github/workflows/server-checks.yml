@@ -8,6 +8,7 @@ on:
   pull_request:
     paths:
       - "server/**"
+      - "admin-panel/**"
       - ".github/workflows/server-checks.yml"
 jobs:
   validate:

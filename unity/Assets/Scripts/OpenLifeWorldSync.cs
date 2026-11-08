@@ -4,8 +4,8 @@ using UnityEngine;
 
 public class OpenLifeWorldSync : MonoBehaviour
 {
-    [SerializeField] float sendInterval = 0.4f;
-    [SerializeField] float receiveInterval = 1.0f;
+    [SerializeField] float sendInterval = 1.0f;
+    [SerializeField] float receiveInterval = 1.5f;
     [SerializeField] float remoteSmooth = 10f;
     readonly Dictionary<int, Transform> remotePlayers = new Dictionary<int, Transform>();
     readonly Dictionary<int, Vector3> remoteTargets = new Dictionary<int, Vector3>();

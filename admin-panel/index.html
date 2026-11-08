@@ -111,8 +111,19 @@ async function loadReports() {
     const data = await call("/api/admin/reports");
     $("reportList").innerHTML = data.reports.map(report =>
       '<p class="card">گزارش #' + report.id + ' | ' + safe(report.reporter) +
-      ' درباره ' + safe(report.target_username) + '<br>' + safe(report.reason) + '</p>'
+      ' درباره ' + safe(report.target_username) + '<br>' + safe(report.reason) +
+      '<br>وضعیت: ' + safe(report.status) +
+      (report.status === "open" ? ' <button onclick="resolveReport(' + report.id + ')">بستن گزارش</button>' : '') + '</p>'
     ).join("") || "گزارشی نیست";
+  } catch (error) { showError(error); }
+}
+
+async function resolveReport(id) {
+  if (!confirm("این گزارش بسته شود؟")) return;
+  try {
+    await call("/api/admin/report/" + id + "/resolve", { method: "POST", body: "{}" });
+    await loadReports();
+    await refresh();
   } catch (error) { showError(error); }
 }
 

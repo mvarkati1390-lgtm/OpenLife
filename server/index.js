@@ -6,6 +6,7 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const Database = require("better-sqlite3");
 const { Server } = require("socket.io");
+const rateLimit = require("express-rate-limit");
 
 const PORT = Number(process.env.PORT || 3000);
 const SECRET = process.env.JWT_SECRET || "";
@@ -59,6 +60,8 @@ if (!count && process.env.OWNER_USERNAME && process.env.OWNER_PASSWORD) {
 app.use(helmet());
 app.use(cors({ origin: allowedOrigin }));
 app.use(express.json({ limit: "16kb" }));
+app.use("/api/", rateLimit({ windowMs: 60 * 1000, limit: 120, standardHeaders: "draft-7", legacyHeaders: false }));
+app.use("/api/login", rateLimit({ windowMs: 15 * 60 * 1000, limit: 10, standardHeaders: "draft-7", legacyHeaders: false }));
 app.use((req,res,next)=>{ res.setHeader("Cache-Control","no-store"); next(); });
 
 const online = new Map();

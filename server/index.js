@@ -205,7 +205,7 @@ app.post("/api/admin/report/:id/resolve",auth,allow("owner","manager","admin","m
  const report=db.prepare("SELECT id,status FROM reports WHERE id=?").get(id);
  if(!report) return res.status(404).json({error:"گزارش پیدا نشد"});
  db.prepare("UPDATE reports SET status='resolved' WHERE id=?").run(id);
- audit(req.user.id,"resolve_report",null,"report:"+id);
+ audit(req.user.id,"resolve_report",id,"");
  res.json({ok:true});
 });
 io.use((socket,next)=>{
@@ -218,8 +218,8 @@ io.use((socket,next)=>{
 });
 io.on("connection",socket=>{
  online.set(socket.id,socket.user.id);
- socket.emit("presence:update",{online:online.size});
- socket.broadcast.emit("presence:update",{online:online.size});
+ socket.emit("presence:update",{online:onlinePlayerCount()});
+ socket.broadcast.emit("presence:update",{online:onlinePlayerCount()});
  let lastMoveAt=0;
  socket.on("player:move",data=>{
   const now=Date.now();
@@ -233,7 +233,7 @@ io.on("connection",socket=>{
  socket.join("world");
  socket.on("disconnect",()=>{
   online.delete(socket.id);
-  io.emit("presence:update",{online:online.size});
+  io.emit("presence:update",{online:onlinePlayerCount()});
  });
 });
 httpServer.listen(PORT,()=>console.log("OpenLife server listening on "+PORT));

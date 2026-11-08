@@ -13,32 +13,23 @@ public class OpenLifeBootstrap : MonoBehaviour
 
     void Start()
     {
-        Application.targetFrameRate = 60;
+        Application.targetFrameRate = 30;
         RenderSettings.ambientLight = new Color(.65f, .67f, .7f);
-        BuildWorld();
+        SetupLighting();
         BuildPlayer();
         BuildUI();
     }
 
-    void BuildWorld()
+    void SetupLighting()
     {
-        var floor = GameObject.CreatePrimitive(PrimitiveType.Plane);
-        floor.name = "Ground";
-        floor.transform.localScale = new Vector3(12, 1, 12);
-        floor.GetComponent<Renderer>().material.color = new Color(.25f, .43f, .28f);
-
-        for (int i = 0; i < 12; i++)
+        RenderSettings.ambientLight = new Color(.55f, .57f, .6f);
+        if (!FindObjectOfType<Light>())
         {
-            var b = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            b.name = "Test Building";
-            b.transform.position = new Vector3((i % 4) * 8 - 12, 1.5f, (i / 4) * 9 + 8);
-            b.transform.localScale = new Vector3(4, 3, 4);
-            b.GetComponent<Renderer>().material.color = new Color(.48f, .5f, .55f);
+            var sun = new GameObject("Sun").AddComponent<Light>();
+            sun.type = LightType.Directional;
+            sun.intensity = 1.05f;
+            sun.transform.rotation = Quaternion.Euler(50, -30, 0);
         }
-        var sun = new GameObject("Sun").AddComponent<Light>();
-        sun.type = LightType.Directional;
-        sun.intensity = 1.15f;
-        sun.transform.rotation = Quaternion.Euler(50, -30, 0);
     }
 
     void BuildPlayer()
@@ -57,6 +48,7 @@ public class OpenLifeBootstrap : MonoBehaviour
         var follow = camObj.AddComponent<ThirdPersonCamera>();
         follow.target = player.transform;
 
+        player.AddComponent<OpenLifeCharacterVisual>();
         var mover = player.AddComponent<ThirdPersonPlayer>();
         mover.cameraTransform = camObj.transform;
     }

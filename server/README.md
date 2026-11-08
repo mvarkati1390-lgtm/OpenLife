@@ -37,3 +37,9 @@ GitHub Actions همین تست API و بررسی نحوی فایل‌ها را �
 - وضعیت حرکت هنوز سیستم نهایی authoritative server، interpolation یا ضدتقلب نیست.
 - سرور روی اینترنت مستقر نشده و تست بار/امنیت مستقل انجام نشده است.
 - برای استقرار، راهنمای `RENDER_DEPLOY.md` را ببینید.
+
+
+### Safety and moderation
+- A player's active Socket.IO sessions are disconnected immediately when an owner or authorized moderator bans the account.
+- Player report submissions are limited to 5 per account per 10 minutes to reduce spam.
+- Report status can be changed to `resolved` by authorized moderation roles; the action is recorded in the audit log.

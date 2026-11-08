@@ -75,6 +75,7 @@ test("registration, login and shared world position API", async () => {
     assert.equal(data.players[0].x, 12.5);
     assert.equal(data.players[0].z, -8);
 
+    await new Promise(resolve => setTimeout(resolve, 800));
     const invalidPosition = await fetch(base + "/api/world/position", {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: "Bearer " + playerSession.token },

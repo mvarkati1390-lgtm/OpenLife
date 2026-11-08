@@ -18,7 +18,7 @@ test("HTTP API registration, authentication, and movement validation", async () 
   const port = await freePort();
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "openlife-test-"));
   const child = spawn(process.execPath, ["index.js"], {
-    cwd: __dirname.replace(/[\\/]test$/, ""),
+    cwd: path.join(__dirname, ".."),
     env: {
       ...process.env,
       PORT: String(port),

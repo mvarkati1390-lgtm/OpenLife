@@ -1,5 +1,6 @@
 const express = require("express");
 const http = require("http");
+const path = require("path");
 const cors = require("cors");
 const helmet = require("helmet");
 const bcrypt = require("bcryptjs");
@@ -70,6 +71,7 @@ app.use(express.json({ limit: "16kb" }));
 app.use("/api/", rateLimit({ windowMs: 60 * 1000, limit: 120, standardHeaders: "draft-7", legacyHeaders: false, skip: req => req.path.startsWith("/world/") }));
 app.use("/api/login", rateLimit({ windowMs: 15 * 60 * 1000, limit: 10, standardHeaders: "draft-7", legacyHeaders: false }));
 app.use((req,res,next)=>{ res.setHeader("Cache-Control","no-store"); next(); });
+app.use("/admin", express.static(path.join(__dirname, "public")));
 
 const online = new Map();
 const roles = ["player","moderator","admin","manager","owner"];

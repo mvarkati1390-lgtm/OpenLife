@@ -25,7 +25,9 @@ func _send_auth(path: String, username: String, password: String) -> void:
 	if not base_url.begins_with("https://"):
 		status_changed.emit("آدرس سرور باید با https:// شروع شود.")
 		return
-	if not username.strip_edges().is_valid_identifier() or username.strip_edges().length() < 3 or username.strip_edges().length() > 20:
+	var username_pattern := RegEx.new()
+	username_pattern.compile("^[A-Za-z0-9_]{3,20}$")
+	if username_pattern.search(username.strip_edges()) == null:
 		status_changed.emit("نام کاربری باید ۳ تا ۲۰ حرف انگلیسی، عدد یا زیرخط باشد.")
 		return
 	if password.length() < 10:

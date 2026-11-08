@@ -15,7 +15,7 @@
 <form id="loginForm" class="row"><input id="username" autocomplete="username" placeholder="نام کاربری" required><input id="password" type="password" autocomplete="current-password" placeholder="رمز عبور" required><button>ورود</button></form>
 </section>
 <div id="dashboard" class="hidden">
-<section class="panel"><h2>وضعیت سرور</h2><div id="stats" class="stats"></div><div class="actions" style="margin-top:12px"><button id="refresh">بروزرسانی</button><button id="loadAudit" class="secondary">گزارش فعالیت مدیران</button><button id="loadReports" class="secondary">گزارش‌های کاربران</button></div></section>
+<section class="panel"><h2>وضعیت سرور</h2><div id="stats" class="stats"></div><div class="actions toolbar"><button id="refresh">بروزرسانی</button><button id="loadAudit" class="secondary">گزارش فعالیت مدیران</button><button id="loadReports" class="secondary">گزارش‌های کاربران</button></div></section>
 <section class="panel"><h2>مدیریت بازیکنان</h2><form id="searchForm" class="row"><input id="query" placeholder="جست‌وجوی نام کاربری"><button>جست‌وجو</button></form><div class="scroll"><table><thead><tr><th>بازیکن</th><th>نقش</th><th>وضعیت</th><th>عملیات</th></tr></thead><tbody id="players"></tbody></table></div></section>
 <section id="rolesPanel" class="panel hidden"><h2>تغییر سطح دسترسی (فقط مالک)</h2><div class="muted">نقش مالک قابل واگذاری یا حذف از این بخش نیست.</div><div class="scroll"><table><thead><tr><th>بازیکن</th><th>نقش جدید</th><th>ثبت</th></tr></thead><tbody id="roles"></tbody></table></div></section>
 <section class="panel"><h2>گزارش‌ها</h2><div id="reports" class="muted">برای مشاهده، «گزارش‌های کاربران» را بزن.</div></section>

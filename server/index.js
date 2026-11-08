@@ -111,7 +111,9 @@ app.post("/api/login",(req,res)=>{
 const positionWrites = new Map();
 const httpPresence = new Map();
 function onlinePlayerCount(){
- const ids=new Set([...online.values(), ...[...httpPresence.entries()].filter(([,t])=>Date.now()-t<20000).map(([id])=>id)]);
+ const now=Date.now();
+ for (const [id,seenAt] of httpPresence) if (now-seenAt>=20000) httpPresence.delete(id);
+ const ids=new Set([...online.values(), ...httpPresence.keys()]);
  return ids.size;
 }
 app.get("/api/world/players",auth,(req,res)=>{

@@ -192,6 +192,14 @@ app.post("/api/reports",auth,(req,res)=>{
 app.get("/api/admin/reports",auth,allow("owner","manager","admin","moderator"),(req,res)=>{
  res.json({reports:db.prepare("SELECT reports.*,users.username reporter FROM reports JOIN users ON users.id=reports.reporter_id ORDER BY reports.id DESC LIMIT 100").all()});
 });
+app.post("/api/admin/report/:id/resolve",auth,allow("owner","manager","admin","moderator"),(req,res)=>{
+ const id=Number(req.params.id);
+ const report=db.prepare("SELECT id,status FROM reports WHERE id=?").get(id);
+ if(!report) return res.status(404).json({error:"گزارش پیدا نشد"});
+ db.prepare("UPDATE reports SET status='resolved' WHERE id=?").run(id);
+ audit(req.user.id,"resolve_report",null,"report:"+id);
+ res.json({ok:true});
+});
 io.use((socket,next)=>{
  try {
   const payload=jwt.verify(socket.handshake.auth?.token||"",SECRET);

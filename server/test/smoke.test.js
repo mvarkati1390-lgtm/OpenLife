@@ -83,7 +83,7 @@ test("registration, login and shared world position API", async () => {
     assert.equal(invalidPosition.status, 400);
   } finally {
     child.kill("SIGTERM");
-    await new Promise(resolve => child.once("exit", resolve).setTimeout?.(3000));
+    await new Promise(resolve => {\n      if (child.exitCode !== null) return resolve();\n      const timer = setTimeout(resolve, 3000);\n      child.once("exit", () => { clearTimeout(timer); resolve(); });\n    });
     fs.rmSync(dir, { recursive: true, force: true });
   }
 });

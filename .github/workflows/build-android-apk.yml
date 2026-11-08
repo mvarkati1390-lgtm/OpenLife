@@ -1,0 +1,49 @@
+name: Build OpenLife Android APK
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "unity/**"
+      - ".github/workflows/build-android-apk.yml"
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: openlife-android-apk
+  cancel-in-progress: true
+jobs:
+  build-android:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check Unity license secret
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+        run: |
+          if [ -z "$UNITY_LICENSE" ]; then
+            echo "::error::Add the UNITY_LICENSE repository secret before building. See unity/ANDROID_APK_BUILD.md."
+            exit 1
+          fi
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          lfs: true
+      - name: Build Android APK
+        uses: game-ci/unity-builder@v4
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+        with:
+          projectPath: unity
+          unityVersion: 2022.3.62f1
+          targetPlatform: Android
+          buildsPath: build
+          buildName: OpenLife
+          androidAppBundle: false
+          allowDirtyBuild: true
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: OpenLife-Android-APK
+          path: build/**/*.apk
+          if-no-files-found: error
+          retention-days: 14

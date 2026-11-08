@@ -1,0 +1,27 @@
+name: Godot project validation
+
+on:
+  push:
+    branches: [godot-migration]
+    paths:
+      - "godot/**"
+      - ".github/workflows/godot-check.yml"
+  pull_request:
+    branches: [godot-migration]
+    paths:
+      - "godot/**"
+      - ".github/workflows/godot-check.yml"
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    container:
+      image: barichello/godot-ci:4.3
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Import and parse project
+        run: godot --headless --editor --path godot --quit
+      - name: Run project briefly
+        run: godot --headless --path godot --quit-after 5

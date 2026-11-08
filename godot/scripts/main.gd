@@ -2,9 +2,12 @@ extends Node3D
 
 const PLAYER_SCRIPT = preload("res://scripts/player.gd")
 const API_SCRIPT = preload("res://scripts/openlife_api.gd")
+const SYNC_SCRIPT = preload("res://scripts/world_sync.gd")
 
 var player: CharacterBody3D
 var api: Node
+var world_sync: Node
+var remote_players: Dictionary = {}
 var status_label: Label
 var server_input: LineEdit
 var username_input: LineEdit
@@ -17,6 +20,11 @@ func _ready() -> void:
 	api = API_SCRIPT.new()
 	add_child(api)
 	api.status_changed.connect(_on_api_status)
+	api.authenticated.connect(_on_authenticated)
+	world_sync = SYNC_SCRIPT.new()
+	add_child(world_sync)
+	world_sync.players_updated.connect(_on_players_updated)
+	world_sync.sync_error.connect(_on_sync_error)
 
 func _build_world() -> void:
 	var environment := WorldEnvironment.new()
@@ -140,3 +148,49 @@ func _register() -> void:
 func _on_api_status(message: String) -> void:
 	if is_instance_valid(status_label):
 		status_label.text = message
+
+
+func _on_authenticated(_user: Dictionary) -> void:
+	world_sync.start(server_input.text, api.token, player)
+	status_label.text = "وارد شدی؛ جست‌وجوی بازیکنان آنلاین..."
+
+func _on_sync_error(message: String) -> void:
+	if is_instance_valid(status_label):
+		status_label.text = message
+
+func _on_players_updated(players: Array) -> void:
+	var seen: Dictionary = {}
+	for data in players:
+		if not data is Dictionary or not data.has("id"):
+			continue
+		var player_id := str(data.id)
+		seen[player_id] = true
+		if not remote_players.has(player_id):
+			remote_players[player_id] = _make_remote_player(str(data.get("username", "بازیکن")))
+		var avatar: Node3D = remote_players[player_id]
+		var target := Vector3(float(data.get("x", 0.0)), float(data.get("y", 0.0)), float(data.get("z", 0.0)))
+		avatar.position = avatar.position.lerp(target, 0.45)
+	for player_id in remote_players.keys():
+		if not seen.has(player_id):
+			remote_players[player_id].queue_free()
+			remote_players.erase(player_id)
+
+func _make_remote_player(display_name: String) -> Node3D:
+	var avatar := Node3D.new()
+	var body := MeshInstance3D.new()
+	var capsule := CapsuleMesh.new()
+	capsule.radius = 0.42
+	capsule.height = 1.8
+	body.mesh = capsule
+	var material := StandardMaterial3D.new()
+	material.albedo_color = Color(0.85, 0.48, 0.12)
+	body.material_override = material
+	body.position.y = 0.9
+	avatar.add_child(body)
+	var tag := Label3D.new()
+	tag.text = display_name
+	tag.position.y = 2.1
+	tag.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	avatar.add_child(tag)
+	add_child(avatar)
+	return avatar

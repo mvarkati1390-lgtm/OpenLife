@@ -53,3 +53,12 @@ func _physics_process(delta: float) -> void:
 		velocity.x = move_toward(velocity.x, 0, SPEED * 5.0 * delta)
 		velocity.z = move_toward(velocity.z, 0, SPEED * 5.0 * delta)
 	move_and_slide()
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	if event is InputEventScreenDrag:
+		camera_pivot.rotation.y -= event.relative.x * 0.006
+		camera_pivot.rotation.x = clamp(camera_pivot.rotation.x - event.relative.y * 0.004, -0.85, 0.45)
+	elif event is InputEventMouseMotion and Input.is_mouse_button_pressed(MOUSE_BUTTON_RIGHT):
+		camera_pivot.rotation.y -= event.relative.x * 0.004
+		camera_pivot.rotation.x = clamp(camera_pivot.rotation.x - event.relative.y * 0.004, -0.85, 0.45)

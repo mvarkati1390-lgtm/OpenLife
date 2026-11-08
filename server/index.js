@@ -67,7 +67,7 @@ if (!count && process.env.OWNER_USERNAME && process.env.OWNER_PASSWORD) {
 app.use(helmet());
 app.use(cors({ origin: allowedOrigin }));
 app.use(express.json({ limit: "16kb" }));
-app.use("/api/", rateLimit({ windowMs: 60 * 1000, limit: 120, standardHeaders: "draft-7", legacyHeaders: false }));
+app.use("/api/", rateLimit({ windowMs: 60 * 1000, limit: 120, standardHeaders: "draft-7", legacyHeaders: false, skip: req => req.path.startsWith("/world/") }));
 app.use("/api/login", rateLimit({ windowMs: 15 * 60 * 1000, limit: 10, standardHeaders: "draft-7", legacyHeaders: false }));
 app.use((req,res,next)=>{ res.setHeader("Cache-Control","no-store"); next(); });
 
@@ -116,13 +116,13 @@ function onlinePlayerCount(){
  const ids=new Set([...online.values(), ...httpPresence.keys()]);
  return ids.size;
 }
-app.get("/api/world/players",auth,(req,res)=>{
+app.get("/api/world/players",auth,rateLimit({ windowMs: 60 * 1000, limit: 40, keyGenerator: req => String(req.user.id), standardHeaders: "draft-7", legacyHeaders: false }),(req,res)=>{
  const players=db.prepare("SELECT users.id,users.username,world_positions.x,world_positions.y,world_positions.z FROM users JOIN world_positions ON world_positions.user_id=users.id WHERE users.banned=0 AND users.id<>? AND world_positions.updated_at >= datetime('now','-20 seconds') LIMIT 100").all(req.user.id);
  res.json({players});
 });
-app.post("/api/world/position",auth,(req,res)=>{
+app.post("/api/world/position",auth,rateLimit({ windowMs: 60 * 1000, limit: 75, keyGenerator: req => String(req.user.id), standardHeaders: "draft-7", legacyHeaders: false }),(req,res)=>{
  const now=Date.now(), previous=positionWrites.get(req.user.id)||0;
- if(now-previous<150) return res.status(429).json({error:"ارسال حرکت خیلی سریع است"});
+ if(now-previous<750) return res.status(429).json({error:"ارسال حرکت خیلی سریع است"});
  const {x,y,z}=req.body||{};
  if(![x,y,z].every(v=>typeof v==="number" && Number.isFinite(v) && Math.abs(v)<=100000))
   return res.status(400).json({error:"مختصات نامعتبر است"});

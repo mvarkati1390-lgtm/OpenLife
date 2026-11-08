@@ -89,7 +89,7 @@ function allow(...allowed){
 function audit(actor,action,target=null,detail=""){
  db.prepare("INSERT INTO audit(actor_id,action,target_id,detail) VALUES(?,?,?,?)").run(actor,action,target,String(detail).slice(0,500));
 }
-app.get("/health",(req,res)=>res.json({ok:true,service:"OpenLife",online:online.size}));
+app.get("/health",(req,res)=>res.json({ok:true,service:"OpenLife",online:onlinePlayerCount()}));
 app.post("/api/register",(req,res)=>{
  const username=String(req.body.username||"").trim();
  const password=String(req.body.password||"");
@@ -109,8 +109,13 @@ app.post("/api/login",(req,res)=>{
  res.json({token:tokenFor(user),user:{id:user.id,username:user.username,role:user.role}});
 });
 const positionWrites = new Map();
+const httpPresence = new Map();
+function onlinePlayerCount(){
+ const ids=new Set([...online.values(), ...[...httpPresence.entries()].filter(([,t])=>Date.now()-t<20000).map(([id])=>id)]);
+ return ids.size;
+}
 app.get("/api/world/players",auth,(req,res)=>{
- const players=db.prepare("SELECT users.id,users.username,world_positions.x,world_positions.y,world_positions.z FROM users JOIN world_positions ON world_positions.user_id=users.id WHERE users.banned=0 AND users.id<>? LIMIT 100").all(req.user.id);
+ const players=db.prepare("SELECT users.id,users.username,world_positions.x,world_positions.y,world_positions.z FROM users JOIN world_positions ON world_positions.user_id=users.id WHERE users.banned=0 AND users.id<>? AND world_positions.updated_at >= datetime('now','-20 seconds') LIMIT 100").all(req.user.id);
  res.json({players});
 });
 app.post("/api/world/position",auth,(req,res)=>{
@@ -120,6 +125,7 @@ app.post("/api/world/position",auth,(req,res)=>{
  if(![x,y,z].every(v=>typeof v==="number" && Number.isFinite(v) && Math.abs(v)<=100000))
   return res.status(400).json({error:"مختصات نامعتبر است"});
  positionWrites.set(req.user.id,now);
+ httpPresence.set(req.user.id,now);
  db.prepare("INSERT INTO world_positions(user_id,x,y,z,updated_at) VALUES(?,?,?,?,CURRENT_TIMESTAMP) ON CONFLICT(user_id) DO UPDATE SET x=excluded.x,y=excluded.y,z=excluded.z,updated_at=CURRENT_TIMESTAMP").run(req.user.id,x,y,z);
  res.json({ok:true});
 });
@@ -131,12 +137,12 @@ app.get("/api/admin/overview",auth,allow("owner","manager","admin","moderator"),
  const total=db.prepare("SELECT COUNT(*) n FROM users").get().n;
  const banned=db.prepare("SELECT COUNT(*) n FROM users WHERE banned=1").get().n;
  const reports=db.prepare("SELECT COUNT(*) n FROM reports WHERE status='open'").get().n;
- res.json({total,online:online.size,banned,openReports:reports});
+ res.json({total,online:onlinePlayerCount(),banned,openReports:reports});
 });
 app.get("/api/admin/players",auth,allow("owner","manager","admin","moderator"),(req,res)=>{
  const q=String(req.query.q||"").slice(0,40);
  const players=db.prepare("SELECT id,username,role,banned,warnings,created_at FROM users WHERE username LIKE ? ORDER BY id DESC LIMIT 100").all("%"+q+"%");
- res.json({players:players.map(p=>({...p,online:online.has(p.id)}))});
+ res.json({players:players.map(p=>({...p,online:online.has(p.id) || (httpPresence.has(p.id) && Date.now()-httpPresence.get(p.id)<20000)}))});
 });
 app.post("/api/admin/player/:id/warn",auth,allow("owner","manager","admin"),(req,res)=>{
  const id=Number(req.params.id);

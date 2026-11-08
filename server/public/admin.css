@@ -14,3 +14,5 @@ td .row{gap:5px}td button{padding:7px 9px;font-size:12px}
 .notice{padding:10px;border-radius:9px;background:#26364d;margin:10px 0;white-space:pre-wrap}
 .scroll{overflow-x:auto}.actions{display:flex;gap:8px;flex-wrap:wrap}
 @media(max-width:600px){body{padding:12px}.panel{padding:12px}h1{font-size:20px}}
+
+.toolbar{margin-top:12px}

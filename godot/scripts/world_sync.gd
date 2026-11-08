@@ -39,10 +39,10 @@ func _process(delta: float) -> void:
 		return
 	send_timer += delta
 	receive_timer += delta
-	if send_timer >= 0.3 and not sending:
+	if send_timer >= 0.9 and not sending:
 		send_timer = 0.0
 		_send_position()
-	if receive_timer >= 0.8 and not receiving:
+	if receive_timer >= 2.0 and not receiving:
 		receive_timer = 0.0
 		_fetch_players()
 

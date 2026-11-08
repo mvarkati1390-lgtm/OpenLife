@@ -6,11 +6,11 @@
 <section class="card" id="login"><h2>ورود مدیر</h2><input id="api" placeholder="نشانی سرور" value="http://localhost:3000"><br><input id="username" placeholder="نام کاربری"><input id="password" type="password" placeholder="رمز عبور"><button onclick="login()">ورود</button><p id="error"></p></section>
 <section id="dashboard" class="hidden"><div class="grid"><div class="card">کل بازیکنان<div class="metric" id="total">-</div></div><div class="card">آنلاین<div class="metric" id="online">-</div></div><div class="card">مسدود<div class="metric" id="banned">-</div></div><div class="card">گزارش باز<div class="metric" id="reports">-</div></div></div>
 <div class="card"><h3>جست‌وجوی بازیکن</h3><input id="search" placeholder="نام کاربری"><button onclick="loadPlayers()">جست‌وجو</button><div style="overflow:auto"><table><thead><tr><th>شناسه</th><th>نام</th><th>نقش</th><th>وضعیت</th><th>عملیات</th></tr></thead><tbody id="players"></tbody></table></div></div>
-<div class="card"><h3>تغییر نقش بازیکن (فقط مالک)</h3><input id="roleId" type="number" placeholder="شناسه بازیکن"><select id="roleValue"><option value="player">بازیکن</option><option value="moderator">ناظر</option><option value="admin">ادمین</option><option value="manager">مدیر</option></select><button onclick="setRole()">ثبت نقش</button><small>سرور فقط به مالک اجازه تغییر نقش می‌دهد.</small></div><div class="card"><h3>گزارش‌ها</h3><button onclick="loadReports()">بارگذاری گزارش‌ها</button><div id="reportList"></div></div>
+<div class="card" id="roleCard"><h3>تغییر نقش بازیکن (فقط مالک)</h3><input id="roleId" type="number" placeholder="شناسه بازیکن"><select id="roleValue"><option value="player">بازیکن</option><option value="moderator">ناظر</option><option value="admin">ادمین</option><option value="manager">مدیر</option></select><button onclick="setRole()">ثبت نقش</button><small>سرور فقط به مالک اجازه تغییر نقش می‌دهد.</small></div><div class="card"><h3>گزارش‌ها</h3><button onclick="loadReports()">بارگذاری گزارش‌ها</button><div id="reportList"></div></div><div class="card" id="auditCard"><h3>گزارش فعالیت مدیران</h3><button onclick="loadAudit()">بارگذاری رویدادها</button><div id="auditList"></div></div>
 <button class="danger" onclick="logout()">خروج</button></section></main>
 <script>
 const $ = id => document.getElementById(id);
-let token = "", base = "", refreshTimer = null;
+let token = "", base = "", refreshTimer = null, currentRole = "";
 
 async function call(path, options = {}) {
   const response = await fetch(base + path, {
@@ -38,6 +38,9 @@ async function login() {
     const data = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(data.error || "ورود ناموفق بود");
     token = data.token;
+    currentRole = data.user ? data.user.role : "";
+    $("roleCard").classList.toggle("hidden", currentRole !== "owner");
+    $("auditCard").classList.toggle("hidden", !["owner", "manager"].includes(currentRole));
     $("login").classList.add("hidden");
     $("dashboard").classList.remove("hidden");
     $("status").textContent = "متصل";
@@ -93,6 +96,16 @@ async function setRole() {
   } catch (error) { showError(error); }
 }
 
+async function loadAudit() {
+  try {
+    const data = await call("/api/admin/audit");
+    $("auditList").innerHTML = data.events.map(event =>
+      '<p class="card">#' + event.id + ' | ' + safe(event.actor || "سیستم") + ' | ' + safe(event.action) + ' | هدف: ' + safe(event.target_id) +
+      '<br>' + safe(event.detail || "") + '<br><small>' + safe(event.created_at) + '</small></p>'
+    ).join("") || "رویدادی ثبت نشده است";
+  } catch (error) { showError(error); }
+}
+
 async function loadReports() {
   try {
     const data = await call("/api/admin/reports");
@@ -116,6 +129,7 @@ function showError(error) {
 
 function logout() {
   token = "";
+  currentRole = "";
   if (refreshTimer) clearInterval(refreshTimer);
   refreshTimer = null;
   $("dashboard").classList.add("hidden");

@@ -1,0 +1,28 @@
+# Unity
+[Ll]ibrary/
+[Tt]emp/
+[Oo]bj/
+[Bb]uild/
+[Bb]uilds/
+[Ll]ogs/
+UserSettings/
+*.csproj
+*.sln
+*.unityproj
+*.pidb
+*.booproj
+*.svd
+
+# Secrets and local configuration
+.env
+.env.*
+!.env.example
+secrets/
+*.keystore
+*.jks
+
+# Editors and OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

@@ -1,10 +1,11 @@
+using System;
 using UnityEngine;
 using UnityEngine.UI;
 
 public class OpenLifeAuthPanel : MonoBehaviour
 {
     Canvas canvas;
-    InputField username, password;
+    InputField username, password, serverAddress;
     Text status;
     bool visible = true;
 
@@ -24,17 +25,42 @@ public class OpenLifeAuthPanel : MonoBehaviour
         scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
         scaler.referenceResolution = new Vector2(1080, 1920);
 
-        var panel = MakeRect("Auth Panel", root.transform, new Vector2(.5f,.68f), new Vector2(650,520));
+        var panel = MakeRect("Auth Panel", root.transform, new Vector2(.5f,.68f), new Vector2(650,720));
         var bg = panel.gameObject.AddComponent<Image>();
         bg.color = new Color(.04f,.07f,.12f,.92f);
-        MakeText("ورود به OpenLife", panel, new Vector2(0,205), 34);
+        MakeText("ورود به OpenLife", panel, new Vector2(0,300), 34);
 
-        username = MakeInput("نام کاربری", panel, new Vector2(0,115), false);
-        password = MakeInput("رمز عبور", panel, new Vector2(0,25), true);
-        MakeButton("ورود", panel, new Vector2(-145,-85), Login);
-        MakeButton("ثبت نام", panel, new Vector2(145,-85), Register);
-        status = MakeText("برای بازی وارد شوید", panel, new Vector2(0,-175), 22);
-        MakeButton("ادامه مهمان", panel, new Vector2(0,-235), Hide);
+        username = MakeInput("نام کاربری", panel, new Vector2(0,205), false);
+        password = MakeInput("رمز عبور", panel, new Vector2(0,115), true);
+        serverAddress = MakeInput("آدرس سرور HTTPS", panel, new Vector2(0,25), false);
+        serverAddress.text = PlayerPrefs.GetString("openlife_server_url", "");
+        if (!string.IsNullOrWhiteSpace(serverAddress.text) && OpenLifeApiClient.Instance)
+            OpenLifeApiClient.Instance.ConfigureServer(serverAddress.text);
+        MakeButton("ذخیره آدرس سرور", panel, new Vector2(0,-65), SaveServerAddress);
+        MakeButton("ورود", panel, new Vector2(-145,-155), Login);
+        MakeButton("ثبت نام", panel, new Vector2(145,-155), Register);
+        status = MakeText("برای بازی وارد شوید", panel, new Vector2(0,-245), 22);
+        MakeButton("ادامه مهمان", panel, new Vector2(0,-315), Hide);
+    }
+
+    void SaveServerAddress()
+    {
+        string value = serverAddress != null ? serverAddress.text.Trim() : "";
+        if (!Uri.TryCreate(value, UriKind.Absolute, out var uri) ||
+            (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps))
+        {
+            SetStatus("آدرس سرور معتبر نیست");
+            return;
+        }
+        if (!OpenLifeApiClient.Instance)
+        {
+            SetStatus("کلاینت شبکه آماده نیست");
+            return;
+        }
+        OpenLifeApiClient.Instance.ConfigureServer(value);
+        PlayerPrefs.SetString("openlife_server_url", value.TrimEnd('/'));
+        PlayerPrefs.Save();
+        SetStatus("آدرس سرور ذخیره شد");
     }
 
     void Login()

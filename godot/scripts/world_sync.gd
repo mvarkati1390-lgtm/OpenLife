@@ -20,6 +20,8 @@ func _ready() -> void:
 	receiver.timeout = 8.0
 	add_child(sender)
 	add_child(receiver)
+	sender.request_completed.connect(_on_sender_request_completed)
+	receiver.request_completed.connect(_on_receiver_request_completed)
 
 func start(url: String, auth_token: String, player: CharacterBody3D) -> void:
 	base_url = url.strip_edges().trim_suffix("/")
@@ -51,7 +53,7 @@ func _send_position() -> void:
 	var err := sender.request(base_url + "/api/world/position", _headers(), HTTPClient.METHOD_POST, body)
 	if err != OK:
 		sending = false
-		 sync_error.emit("ارسال موقعیت ناموفق بود.")
+		sync_error.emit("ارسال موقعیت ناموفق بود.")
 
 func _fetch_players() -> void:
 	receiving = true

@@ -109,9 +109,25 @@ func _build_ui() -> void:
 	buttons.add_child(register)
 
 	status_label = Label.new()
-	status_label.text = "برای حرکت از WASD یا کلیدهای جهت استفاده کن."
+	status_label.text = "برای حرکت از WASD یا دکمه‌های لمسی استفاده کن."
 	status_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	column.add_child(status_label)
+
+	_add_touch_button(layer, "▲", "move_forward", Vector2(90, 520))
+	_add_touch_button(layer, "▼", "move_back", Vector2(90, 630))
+	_add_touch_button(layer, "◀", "move_left", Vector2(20, 575))
+	_add_touch_button(layer, "▶", "move_right", Vector2(160, 575))
+	_add_touch_button(layer, "پرش", "ui_accept", Vector2(1080, 590))
+
+func _add_touch_button(parent: CanvasLayer, caption: String, action: String, pos: Vector2) -> void:
+	var button := Button.new()
+	button.text = caption
+	button.position = pos
+	button.custom_minimum_size = Vector2(90, 90)
+	button.add_theme_font_size_override("font_size", 24)
+	button.button_down.connect(func(): Input.action_press(action))
+	button.button_up.connect(func(): Input.action_release(action))
+	parent.add_child(button)
 
 func _login() -> void:
 	api.configure(server_input.text)

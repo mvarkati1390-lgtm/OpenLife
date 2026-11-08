@@ -22,3 +22,5 @@ jobs:
         run: node --check server/index.js
       - name: Run server API smoke tests
         run: npm test --prefix server
+      - name: Check admin panel JavaScript syntax
+        run: node -e "const fs=require('fs');const vm=require('vm');const html=fs.readFileSync('admin-panel/index.html','utf8');const script=html.match(/<script>([\\s\\S]*?)<\\/script>/);if(!script)throw new Error('script not found');new vm.Script(script[1]);"

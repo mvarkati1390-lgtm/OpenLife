@@ -1,6 +1,7 @@
 extends Node
 
 signal status_changed(message: String)
+signal authenticated(user: Dictionary)
 
 var base_url := ""
 var token := ""
@@ -45,6 +46,8 @@ func _send_auth(path: String, username: String, password: String) -> void:
 		return
 	if parsed is Dictionary and parsed.has("token"):
 		token = str(parsed.token)
-		status_changed.emit("ورود موفق بود. اتصال به دنیای آنلاین در مرحله بعد فعال می‌شود.")
+		var user: Dictionary = parsed.get("user", {})
+		authenticated.emit(user)
+		status_changed.emit("ورود موفق بود؛ اتصال به دنیای آنلاین برقرار شد.")
 	else:
 		status_changed.emit("پاسخ سرور قابل شناسایی نیست.")

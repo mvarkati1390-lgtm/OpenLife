@@ -9,15 +9,118 @@
 <div class="card"><h3>تغییر نقش بازیکن (فقط مالک)</h3><input id="roleId" type="number" placeholder="شناسه بازیکن"><select id="roleValue"><option value="player">بازیکن</option><option value="moderator">ناظر</option><option value="admin">ادمین</option><option value="manager">مدیر</option></select><button onclick="setRole()">ثبت نقش</button><small>سرور فقط به مالک اجازه تغییر نقش می‌دهد.</small></div><div class="card"><h3>گزارش‌ها</h3><button onclick="loadReports()">بارگذاری گزارش‌ها</button><div id="reportList"></div></div>
 <button class="danger" onclick="logout()">خروج</button></section></main>
 <script>
-let token="",base="";
-async function call(path,options={}){const r=await fetch(base+path,{...options,headers:{"Content-Type":"application/json","Authorization":"Bearer "+token,...options.headers}});const d=await r.json();if(!r.ok)throw Error(d.error||"خطا");return d}
-async function login(){base=document.getElementById("api").value.replace(/\/$/,"");try{const r=await fetch(base+"/api/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({username:username.value,password:password.value})});const d=await r.json();if(!r.ok)throw Error(d.error);token=d.token;loginBox();await refresh()}catch(e){error.textContent=e.message}}
-function loginBox(){document.getElementById("login").classList.add("hidden");document.getElementById("dashboard").classList.remove("hidden");status.textContent="متصل"}
-async function refresh(){const d=await call("/api/admin/overview");total.textContent=d.total;online.textContent=d.online;banned.textContent=d.banned;reports.textContent=d.openReports;await loadPlayers()}
-async function loadPlayers(){const d=await call("/api/admin/players?q="+encodeURIComponent(search.value));players.innerHTML=d.players.map(p=>'<tr><td>'+p.id+'</td><td>'+safe(p.username)+'</td><td>'+p.role+'</td><td>'+(p.online?'آنلاین':'آفلاین')+(p.banned?' / مسدود':'')+'</td><td>'+(p.banned?'<button onclick="action('+p.id+',\'unban\')">رفع مسدودی</button>':'<button class="danger" onclick="action('+p.id+',\'ban\')">مسدودسازی</button>')+' <button onclick="action('+p.id+',\'warn\')">اخطار</button></td></tr>').join("")}
-async function action(id,kind){if(!confirm("این عملیات انجام شود؟"))return;try{await call("/api/admin/player/"+id+"/"+kind,{method:"POST",body:JSON.stringify({reason:"اقدام از پنل"})});await refresh()}catch(e){alert(e.message)}}
-async function setRole(){try{await call("/api/owner/role",{method:"POST",body:JSON.stringify({userId:Number(roleId.value),role:roleValue.value})});alert("نقش به‌روزرسانی شد");await refresh()}catch(e){alert(e.message)}}
-async function loadReports(){const d=await call("/api/admin/reports");reportList.innerHTML=d.reports.map(x=>'<p class="card">گزارش #'+x.id+' | '+safe(x.reporter)+' درباره '+safe(x.target_username)+'<br>'+safe(x.reason)+'</p>').join("")||"گزارشی نیست"}
-function safe(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
-function logout(){token="";dashboard.classList.add("hidden");login.classList.remove("hidden");status.textContent="آفلاین"}
+const $ = id => document.getElementById(id);
+let token = "", base = "", refreshTimer = null;
+
+async function call(path, options = {}) {
+  const response = await fetch(base + path, {
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { "Authorization": "Bearer " + token } : {}),
+      ...(options.headers || {})
+    }
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(data.error || "خطا در ارتباط با سرور");
+  return data;
+}
+
+async function login() {
+  base = $("api").value.trim().replace(/\/$/, "");
+  if (!/^https?:\/\//i.test(base)) { $("error").textContent = "آدرس سرور معتبر نیست"; return; }
+  try {
+    const response = await fetch(base + "/api/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username: $("username").value, password: $("password").value })
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.error || "ورود ناموفق بود");
+    token = data.token;
+    $("login").classList.add("hidden");
+    $("dashboard").classList.remove("hidden");
+    $("status").textContent = "متصل";
+    await refresh();
+    if (refreshTimer) clearInterval(refreshTimer);
+    refreshTimer = setInterval(() => refresh().catch(showError), 15000);
+  } catch (error) {
+    $("error").textContent = error.message;
+  }
+}
+
+async function refresh() {
+  const data = await call("/api/admin/overview");
+  $("total").textContent = data.total;
+  $("online").textContent = data.online;
+  $("banned").textContent = data.banned;
+  $("reports").textContent = data.openReports;
+  await loadPlayers();
+}
+
+async function loadPlayers() {
+  const data = await call("/api/admin/players?q=" + encodeURIComponent($("search").value));
+  $("players").innerHTML = data.players.map(player =>
+    '<tr><td>' + player.id + '</td><td>' + safe(player.username) +
+    '</td><td>' + safe(player.role) + '</td><td>' +
+    (player.online ? 'آنلاین' : 'آفلاین') + (player.banned ? ' / مسدود' : '') +
+    '</td><td>' +
+    (player.banned
+      ? '<button onclick="action(' + player.id + ',\'unban\')">رفع مسدودی</button>'
+      : '<button class="danger" onclick="action(' + player.id + ',\'ban\')">مسدودسازی</button>') +
+    ' <button onclick="action(' + player.id + ',\'warn\')">اخطار</button></td></tr>'
+  ).join("");
+}
+
+async function action(id, kind) {
+  if (!confirm("این عملیات انجام شود؟")) return;
+  try {
+    await call("/api/admin/player/" + id + "/" + kind, {
+      method: "POST", body: JSON.stringify({ reason: "اقدام از پنل" })
+    });
+    await refresh();
+  } catch (error) { showError(error); }
+}
+
+async function setRole() {
+  try {
+    await call("/api/owner/role", {
+      method: "POST",
+      body: JSON.stringify({ userId: Number($("roleId").value), role: $("roleValue").value })
+    });
+    alert("نقش به‌روزرسانی شد");
+    await refresh();
+  } catch (error) { showError(error); }
+}
+
+async function loadReports() {
+  try {
+    const data = await call("/api/admin/reports");
+    $("reportList").innerHTML = data.reports.map(report =>
+      '<p class="card">گزارش #' + report.id + ' | ' + safe(report.reporter) +
+      ' درباره ' + safe(report.target_username) + '<br>' + safe(report.reason) + '</p>'
+    ).join("") || "گزارشی نیست";
+  } catch (error) { showError(error); }
+}
+
+function safe(value) {
+  return String(value).replace(/[&<>"']/g, character => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+  }[character]));
+}
+
+function showError(error) {
+  $("status").textContent = "خطا";
+  $("error").textContent = error.message || String(error);
+}
+
+function logout() {
+  token = "";
+  if (refreshTimer) clearInterval(refreshTimer);
+  refreshTimer = null;
+  $("dashboard").classList.add("hidden");
+  $("login").classList.remove("hidden");
+  $("status").textContent = "آفلاین";
+  $("password").value = "";
+}
 </script></body></html>

@@ -25,8 +25,11 @@ func _send_auth(path: String, username: String, password: String) -> void:
 	if not base_url.begins_with("https://"):
 		status_changed.emit("آدرس سرور باید با https:// شروع شود.")
 		return
-	if username.strip_edges().is_empty() or password.is_empty():
-		status_changed.emit("نام کاربری و رمز را وارد کن.")
+	if not username.strip_edges().is_valid_identifier() or username.strip_edges().length() < 3 or username.strip_edges().length() > 20:
+		status_changed.emit("نام کاربری باید ۳ تا ۲۰ حرف انگلیسی، عدد یا زیرخط باشد.")
+		return
+	if password.length() < 10:
+		status_changed.emit("رمز عبور باید حداقل ۱۰ کاراکتر باشد.")
 		return
 	var body := JSON.stringify({"username": username.strip_edges(), "password": password})
 	var headers := PackedStringArray(["Content-Type: application/json"])

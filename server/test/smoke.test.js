@@ -116,6 +116,13 @@ test("registration, login and shared world position API", async () => {
     });
     assert.equal(ban.status, 200);
 
+    const bannedLogin = await fetch(base + "/api/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username: "player_test", password: "player-password-123" })
+    });
+    assert.equal(bannedLogin.status, 401);
+
     const bannedRequest = await fetch(base + "/api/world/position", {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: "Bearer " + playerSession.token },

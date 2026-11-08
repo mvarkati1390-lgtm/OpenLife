@@ -81,6 +81,23 @@ public class OpenLifeApiClient : MonoBehaviour
         }));
     }
 
+    public void UpdateWorldPosition(Vector3 position, Action<bool, string> completed = null)
+    {
+        var body = JsonUtility.ToJson(new PositionBody { x = position.x, y = position.y, z = position.z });
+        StartCoroutine(Post("/api/world/position", body, true,
+            (ok, response) => completed?.Invoke(ok, ok ? "موقعیت ذخیره شد" : ReadError(response))));
+    }
+
+    public void GetWorldPlayers(Action<WorldPlayer[], string> completed)
+    {
+        StartCoroutine(Get("/api/world/players", (ok, body) =>
+        {
+            if (!ok) { completed?.Invoke(null, ReadError(body)); return; }
+            var data = JsonUtility.FromJson<WorldPlayersResponse>(body);
+            completed?.Invoke(data != null ? data.players : new WorldPlayer[0], "دریافت بازیکنان انجام شد");
+        }));
+    }
+
     public void SubmitReport(string target, string reason, Action<bool, string> completed)
     {
         StartCoroutine(Post("/api/reports",
@@ -140,6 +157,9 @@ public class OpenLifeApiClient : MonoBehaviour
         return LastError;
     }
 
+    [Serializable] public class WorldPlayer { public int id; public string username; public float x; public float y; public float z; }
+    [Serializable] class WorldPlayersResponse { public WorldPlayer[] players; }
+    [Serializable] class PositionBody { public float x; public float y; public float z; }
     [Serializable] class Credentials { public string username; public string password; }
     [Serializable] class ReportBody { public string target; public string reason; }
 }
